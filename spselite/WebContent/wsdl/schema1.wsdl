@@ -1,0 +1,248 @@
+<definitions
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+ xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ xmlns:tns="wsclient.meta.tecsys.com"
+ targetNamespace="wsclient.meta.tecsys.com"
+ xmlns="http://schemas.xmlsoap.org/wsdl/">
+<types>
+ <xs:schema version="1.0" targetNamespace="wsclient.meta.tecsys.com">
+ <xs:element name="isValidUserCredentials" type="tns:isValidUserCredentials" /> 
+ <xs:element name="isValidUserCredentialsResponse" type="tns:isValidUserCredentialsResponse" /> 
+ <xs:element name="search" type="tns:search"/>
+ <xs:element name="searchResponse" type="tns:searchResponse"/>
+ <xs:element name="update" type="tns:update"/>
+ <xs:element name="updateResponse" type="tns:updateResponse"/>
+ <xs:complexType name="isValidUserCredentials">
+  <xs:sequence>
+  <xs:element minOccurs="0" name="userName" type="xs:string" /> 
+  <xs:element minOccurs="0" name="password" type="xs:string" /> 
+  </xs:sequence>
+  </xs:complexType>
+ <xs:complexType name="isValidUserCredentialsResponse">
+  <xs:sequence>
+  <xs:element name="return" type="xs:boolean" /> 
+  </xs:sequence>
+  </xs:complexType>
+ <xs:complexType name="search">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="arg0" type="tns:metaWsSearchRequest"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="metaWsSearchRequest">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="userName" type="xs:string"/>
+   <xs:element minOccurs="0" name="password" type="xs:string"/>
+   <xs:element minOccurs="0" name="sessionId" type="xs:int"/>
+    <xs:element minOccurs="0" name="criteria" type="tns:metaWsSearchRequestCriteria"/>
+    <xs:element minOccurs="0" name="maxRows" type="xs:int"/>
+   </xs:sequence>
+  </xs:complexType>
+ <xs:complexType name="metaWsSearchRequestCriteria">
+  <xs:sequence>
+   <xs:element name="MetaMdUser-WebserviceBc" minOccurs="0" maxOccurs="1">
+    <xs:complexType>
+     <xs:sequence>
+   <xs:element name="Errors" minOccurs="0" maxOccurs="1" type="tns:MetaErrors"/>
+      <xs:element name="UserName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+      <xs:element name="FirstName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+      <xs:element name="LastName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+      <xs:element name="EmailAddress" minOccurs="0" maxOccurs="1" type="xs:string"/>
+      <xs:element name="UserMasterRole-RoleName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+      <xs:element name="IsActive" minOccurs="0" maxOccurs="1" type="xs:string"/>
+    </xs:sequence>
+   </xs:complexType>
+  </xs:element>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="searchResponse">
+  <xs:sequence>
+   <xs:element name="return" minOccurs="0" type="tns:metaWsSearchResponse"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="metaWsSearchResponse">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="status" type="tns:metaWsResponseStatus"/>
+   <xs:element minOccurs="0" name="criteria" type="tns:metaWsSearchRequestCriteria"/>
+   <xs:element minOccurs="0" name="maxRows" type="xs:int"/>
+   <xs:element minOccurs="0" maxOccurs="1" name="result" type="tns:ArrayOfMetaMdUser-WebserviceBc"/>
+   <xs:element minOccurs="0" name="viewName" type="xs:string"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="ArrayOfMetaMdUser-WebserviceBc">
+  <xs:sequence>
+   <xs:element minOccurs="0" maxOccurs="unbounded" name="MetaMdUser-WebserviceBc" nillable="true" type="tns:MetaMdUser-WebserviceBc"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="MetaMdUser-WebserviceBc">
+  <xs:sequence>
+   <xs:element name="Errors" minOccurs="0" maxOccurs="1" type="tns:MetaErrors"/>
+   <xs:element name="UserName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="FullName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="FirstName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="MiddleName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="LastName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Honor" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="EmailAddress" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PhoneNumber" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="MobilePhoneNumber" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="IsActive" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="IsInternal" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PromptForSessionParametersAtLogin" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="UserType" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="IsSsoEnabled" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="UmsAuthenticationMethod" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="LdapUserName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="LdapInstanceName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Password" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PasswordHint" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="UmsMaximumLoginAttempts" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="UserLoginAttempts" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Company" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Department" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="JobTitle" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Supervisor" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="SupervisorPhone" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Locale" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="Theme" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="HomeResourceName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="MobileHomeResourceName" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PortalResourceFilter" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PortalMinimumNumberOfResourcesPerColumn" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="StartingInterval" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="PortalLaunchInSeparateWindow" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="AutomaticallyDiscardChanges" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="AutomaticallyFormatPhoneNumbers" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="ProceedWithWarnings" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="ValidateAtTheFieldLevel" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="ValidateForeignKeys" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="ConfirmReportCriteria" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="SearchResultsRecordsPerPage" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="MaximumSearchResultsRecordsToDisplay" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="StartingPage" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="StartingActionOnArrays" minOccurs="0" maxOccurs="1" type="xs:string"/>
+   <xs:element name="FormLabelFormat" minOccurs="0" maxOccurs="1" type="xs:string"/>
+ </xs:sequence>
+</xs:complexType>
+ <xs:complexType name="metaWsResponseStatus">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="code" type="xs:string"/>
+   <xs:element minOccurs="0" name="description" type="xs:string"/>
+   <xs:element minOccurs="0" name="timestamp" type="xs:string"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="update">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="arg0" type="tns:metaWsUpdateRequest"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="metaWsUpdateRequest">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="userName" type="xs:string"/>
+   <xs:element minOccurs="0" name="password" type="xs:string"/>
+   <xs:element minOccurs="0" name="sessionId" type="xs:int"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="transactions" nillable="true" type="tns:metaWsUpdateTransactionRequest"/>
+   </xs:sequence></xs:complexType>
+ <xs:complexType name="metaWsUpdateTransactionRequest">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="action" type="xs:string"/>
+   <xs:element minOccurs="0" name="data" type="tns:ArrayOfMetaMdUser-WebserviceBc"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="updateResponse">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="return" type="tns:metaWsUpdateResponse"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="metaWsUpdateResponse">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="status" type="tns:metaWsResponseStatus"/>
+   <xs:element minOccurs="0" maxOccurs="unbounded" name="transactions" nillable="true" type="tns:metaWsUpdateTransactionResponse"/>
+  </xs:sequence>
+ </xs:complexType>
+ <xs:complexType name="metaWsUpdateTransactionResponse">
+  <xs:sequence>
+   <xs:element minOccurs="0" name="status" type="tns:metaWsResponseStatus"/>
+   <xs:element minOccurs="0" name="action" nillable="true" type="xs:string"/>
+    <xs:element minOccurs="0" name="data" nillable="true" type="tns:ArrayOfMetaMdUser-WebserviceBc"/>
+   </xs:sequence>
+  </xs:complexType>
+ <xs:complexType name="MetaErrors">
+  <xs:sequence>
+   <xs:element minOccurs="0" maxOccurs="unbounded" nillable="true" name="Error" type="xs:string"/>
+  </xs:sequence>
+ </xs:complexType>
+
+</xs:schema>
+</types>
+
+<message name="isValidUserCredentialsResponse">
+ <part element="tns:isValidUserCredentialsResponse" name="parameters" /> 
+</message>
+<message name="MetaWebService_search">
+ <part name="parameters" element="tns:search"></part>
+</message>
+<message name="MetaWebService_update">
+ <part name="parameters" element="tns:update"></part>
+</message>
+<message name="MetaWebService_updateResponse">
+ <part name="parameters" element="tns:updateResponse"></part>
+</message>
+<message name="MetaWebService_searchResponse">
+ <part name="parameters" element="tns:searchResponse"></part>
+</message>
+<message name="isValidUserCredentials">
+  <part element="tns:isValidUserCredentials" name="parameters" /> 
+</message>
+  
+<portType name="MetaWebService">
+ <operation name="search">
+  <input message="tns:MetaWebService_search"></input>
+  <output message="tns:MetaWebService_searchResponse"></output>
+ </operation>
+ <operation name="update">
+  <input message="tns:MetaWebService_update"></input>
+  <output message="tns:MetaWebService_updateResponse"></output>
+ </operation>
+ <operation name="isValidUserCredentials">
+  <input message="tns:isValidUserCredentials" name="isValidUserCredentials" /> 
+  <output message="tns:isValidUserCredentialsResponse" name="isValidUserCredentialsResponse" /> 
+  </operation>
+</portType>
+
+<binding name="MetaWebServiceBinding" type="tns:MetaWebService">
+ <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+  <operation name="search">
+   <soap:operation soapAction=""/>
+   <input>
+    <soap:body use="literal"/>
+   </input>
+   <output>
+    <soap:body use="literal"/>
+   </output>
+  </operation>
+  <operation name="update">
+   <soap:operation soapAction=""/>
+   <input>
+    <soap:body use="literal"/>
+   </input>
+   <output>
+    <soap:body use="literal"/>
+   </output>
+  </operation>
+  <operation name="isValidUserCredentials">
+  <soap:operation soapAction="" style="document" /> 
+  <input name="isValidUserCredentials">
+  <soap:body use="literal" /> 
+  </input>
+  <output name="isValidUserCredentialsResponse">
+  <soap:body use="literal" /> 
+  </output>
+  </operation>
+ </binding>
+
+<service name="MetaWebServiceService">
+ <port binding="tns:MetaWebServiceBinding"  name="MetaWebServicePort">
+  <soap:address location="https://lqil0219spsap01.cardinalhealth.net/qa_84/ws/MetaWebService"/>
+ </port>
+</service>
+</definitions>
