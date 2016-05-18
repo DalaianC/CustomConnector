@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.tecsys.meta.wsclient.MetaMdUserWebserviceBc;
 import com.tecsys.meta.wsclient.MetaWebServiceProxy;
 import com.tecsys.meta.wsclient.MetaWsSearchRequest;
@@ -27,6 +29,8 @@ import openconnector.Schema.Type;
 
 public class SPSElite extends AbstractConnector{
 
+	private final static Logger log = Logger.getLogger(SPSElite.class);
+	
 	//Attributes of the SPSElite service
 	public static final String ATTR_USERNAME = "userName";
 	public static final String ATTR_FIRSTNAME = "firstName";
@@ -87,6 +91,7 @@ public class SPSElite extends AbstractConnector{
 		setHost(config.getString("host"));
 		setSpseliteuser(config.getString("spseliteuser"));
 		setSpselitepassword(config.getString("spselitepassword"));
+		log.debug("Initializing a new object \n username = " + getSpseliteuser() + "\nhost = " + getHost());
 	}
 	
 	@Override
@@ -95,7 +100,7 @@ public class SPSElite extends AbstractConnector{
 		try {
 			getSpsEliteProxy().setEndpoint(getHost());
 			if(spsEliteProxy.isValidUserCredentials(getSpseliteuser(), getSpselitepassword()))
-				System.out.println("Connection sucessful.");
+				log.debug("Connection sucessful.");
 			else
 				throw new ConnectorException("Invalid credentials");
 		} catch (Exception e) {
@@ -106,6 +111,8 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Schema discoverSchema() throws ConnectorException ,UnsupportedOperationException {
 		Schema schema = new Schema();
+		
+		log.debug("Discovering the schema for the type = " + this.objectType);
 		
 		if(OBJECT_TYPE_ACCOUNT.equals(this.objectType)){
 			schema.setObjectType("account");
@@ -123,6 +130,8 @@ public class SPSElite extends AbstractConnector{
 
 	@Override
 	public Iterator<Map<String, Object>> iterate(Filter arg0) throws ConnectorException, UnsupportedOperationException {
+		log.debug("Iterating thru the data ");
+		
 		Iterator<Map<String,Object>> iterator = null;
 		
 		try {
@@ -142,7 +151,7 @@ public class SPSElite extends AbstractConnector{
 			}
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 		}
 		return iterator;
 	}
@@ -151,6 +160,8 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Map<String, Object> read(String username)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
+		log.debug("Creating the map for the username " + username);
+		
 		Map<String, Object> userMap = new HashMap<String, Object>();
 		
 		try {
@@ -173,7 +184,7 @@ public class SPSElite extends AbstractConnector{
 			else
 				throw new ConnectorException("The context is empty.");
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 			throw new ConnectorException(e.getClass().getName());
 		}
 	}
@@ -181,16 +192,11 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result create(String username, List<Item> attributes)
 			throws ConnectorException, ObjectAlreadyExistsException, UnsupportedOperationException {
-		System.out.println("11 - create");
-		System.out.println("11 - create values: ");
-		
-		for(Item attribute : attributes){
-			System.out.println(attribute.name);
-			System.out.println(attribute.value.toString());
-		}
+		log.debug("Creating the user = " + username);
+		printItems(attributes);
 		
 		if(userExist(username)){
-			System.out.println( "The user with the username: " + username + " already exists in the system" );
+			log.debug( "The user with the username: " + username + " already exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
@@ -204,15 +210,11 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result update(String username, List<Item> attributes) throws ConnectorException, ObjectNotFoundException,
 			IllegalArgumentException, UnsupportedOperationException {
-		System.out.println("12 - update");
-		System.out.println("12 - update items: ");
+		log.debug("Updating the user = " + username);
+		printItems(attributes);
 		
-		for(Item item : attributes){
-			System.out.println(item.name);
-			System.out.println(item.value.toString());
-		}
 		if(!userExist(username)){
-			System.out.println(  "The user with the username: " + username + " does not exists in the system" );
+			log.debug(  "The user with the username: " + username + " does not exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
@@ -226,7 +228,7 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result disable(String username, Map<String, Object> options)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		System.out.println("8 - disable");
+		log.debug("Disabling the user = " + username);
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
@@ -241,7 +243,7 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result enable(String username, Map<String, Object> options)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		System.out.println("9 - enable");
+		log.debug("Enabling the user = " + username);
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
@@ -256,6 +258,7 @@ public class SPSElite extends AbstractConnector{
 	@SuppressWarnings("rawtypes")
 	private MetaMdUserWebserviceBc createUser(String username, List<Item> attributes){
 		try{
+			log.debug("Creating the user object...");
 			MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 			user.setUserName(username);
 			
@@ -269,13 +272,14 @@ public class SPSElite extends AbstractConnector{
 			return user;
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 			return null;
 		}
 	}
 	
 	private boolean createUpdate(MetaMdUserWebserviceBc user){
 		try{
+			log.debug("Creating or updating an user...");
 			MetaMdUserWebserviceBc[] transactionData = new MetaMdUserWebserviceBc[]{ user };
 			
 			MetaWsUpdateTransactionRequest transactionRequest = new MetaWsUpdateTransactionRequest();
@@ -290,21 +294,21 @@ public class SPSElite extends AbstractConnector{
 			return status.getStatus().getCode().equals("200");
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 			return false;
 		}
 	}
 	
 	private boolean userExist (String username){		
 		try{
+			log.debug("Checking if the username: " + username + " exists");
 			MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc userSearched = 
 					new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc();
 			userSearched.setUserName(username);
 			
 			MetaWsSearchRequest request = new MetaWsSearchRequest();
 			request.setUserName(spseliteuser);
-			request.setPassword(spselitepassword);	
-			request.setSessionId(0);
+			request.setPassword(spselitepassword);
 			
 			request.setCriteria(new MetaWsSearchRequestCriteria());
 			
@@ -319,6 +323,7 @@ public class SPSElite extends AbstractConnector{
 	}
 	
 	private List<String> getUserNames() {
+		log.debug("Fetching usernames...");
 		List<String> userNamesList = new ArrayList<String>();
 		
 		if(getUsersList() != null && !getUsersList().isEmpty()){
@@ -333,7 +338,7 @@ public class SPSElite extends AbstractConnector{
 	}
 	
 	private boolean loadUsers(){
-		System.out.println("Cargando los usuarios...");
+		log.debug("Fetching users into the context...");
 		
 		MetaMdUserWebserviceBc[] users = null;
 		
@@ -354,10 +359,19 @@ public class SPSElite extends AbstractConnector{
 			}
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 		}
 		
 		return users != null && users.length > 0;
+	}
+	
+	private void printItems(List<Item> attributes){
+		log.debug("Values: ");
+		
+		for(Item attribute : attributes){
+			log.debug(attribute.name);
+			log.debug(attribute.value.toString());
+		}
 	}
 
 	@Override
