@@ -1,17 +1,35 @@
-<Application connector="sailpoint.connector.OpenConnectorAdapter" featuresString="PROVISIONING, DISCOVER_SCHEMA, ENABLE, SEARCH, PASSWORD" name="SPSElite" type="SPSElite">
-  <Attributes>
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<sailpoint>
+  <ImportAction name="merge">
+<Configuration name="ConnectorRegistry">
+ <Attributes>
     <Map>
-      <entry key="connectorClass" value="openconnector.SPSElite"/>
-      <entry key="formPath" value="SPSEliteConnectionForm.xhtml"/>
+      <entry key="applicationTemplates">
+        <value>
+          <List>
+            <Application connector="sailpoint.connector.OpenConnectorAdapter" featuresString="PROVISIONING, DISCOVER_SCHEMA, ENABLE, SEARCH, PASSWORD" name="SPSElite" type="SPSElite">
+              <Attributes>
+                <Map>
+                  <entry key="connectorClass" value="openconnector.SPSElite"/>
+                  <entry key="formPath" value="SPSEliteConnectionForm.xhtml"/>
+                </Map>
+              </Attributes>
+              <Schemas>
+                <Schema displayAttribute="username" identityAttribute="username" nativeObjectType="account" objectType="account">
+                  <AttributeDefinition name="username" required="true" type="string"/>
+                  <AttributeDefinition name="firstName" required="true" type="string"/>
+                  <AttributeDefinition name="lastName" required="true" type="string"/>
+                  <AttributeDefinition name="emailAddress" required="true" type="string"/>
+                  <AttributeDefinition name="isActive" required="true" type="boolean"/>
+                </Schema>
+              </Schemas>
+            </Application>
+            </List>
+        </value>
+      </entry>
     </Map>
   </Attributes>
-  <Schemas>
-    <Schema displayAttribute="username" identityAttribute="username" nativeObjectType="account" objectType="account">
-      <AttributeDefinition name="username" required="true" type="string"/>
-      <AttributeDefinition name="firstName" required="true" type="string"/>
-      <AttributeDefinition name="lastName" required="true" type="string"/>
-      <AttributeDefinition name="emailAddress" required="true" type="string"/>
-      <AttributeDefinition name="isActive" required="true" type="boolean"/>
-    </Schema>
-  </Schemas>
-</Application>
+    </Configuration>
+  </ImportAction>
+</sailpoint>
