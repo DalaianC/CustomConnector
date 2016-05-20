@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="openconnector" default="jar" basedir=".">
+<project name="spselite" default="jar" basedir=".">
 	<property environment="env"/>
 	<property name="tomcat.home" value="${env.TOMCAT_HOME}" />
 	<property name="lib.dir" value="${env.IIQ_LIB}" />

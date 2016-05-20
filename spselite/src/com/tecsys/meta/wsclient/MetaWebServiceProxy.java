@@ -56,11 +56,5 @@ public class MetaWebServiceProxy implements com.tecsys.meta.wsclient.MetaWebServ
     return metaWebService.update(arg0);
   }
   
-  public boolean isValidUserCredentials(java.lang.String userName, java.lang.String password) throws java.rmi.RemoteException{
-    if (metaWebService == null)
-      _initMetaWebServiceProxy();
-    return metaWebService.isValidUserCredentials(userName, password);
-  }
-  
   
 }

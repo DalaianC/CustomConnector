@@ -225,7 +225,7 @@ public class MetaMdUserWebserviceBc  implements java.io.Serializable {
      * @return userName
      */
     public java.lang.String getUserName() {
-        return userName;
+        return userName.toLowerCase();
     }
 
 
@@ -235,7 +235,7 @@ public class MetaMdUserWebserviceBc  implements java.io.Serializable {
      * @param userName
      */
     public void setUserName(java.lang.String userName) {
-        this.userName = userName;
+        this.userName = userName.toLowerCase();
     }
 
 

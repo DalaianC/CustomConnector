@@ -8,10 +8,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.tecsys.meta.wsclient.MetaMdUserWebserviceBc;
 import com.tecsys.meta.wsclient.MetaWebServiceProxy;
+import com.tecsys.meta.wsclient.MetaWsResponseStatus;
 import com.tecsys.meta.wsclient.MetaWsSearchRequest;
 import com.tecsys.meta.wsclient.MetaWsSearchRequestCriteria;
 import com.tecsys.meta.wsclient.MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc;
@@ -19,6 +21,7 @@ import com.tecsys.meta.wsclient.MetaWsSearchResponse;
 import com.tecsys.meta.wsclient.MetaWsUpdateRequest;
 import com.tecsys.meta.wsclient.MetaWsUpdateResponse;
 import com.tecsys.meta.wsclient.MetaWsUpdateTransactionRequest;
+import com.tecsys.meta.wsclient.MetaWsUpdateTransactionResponse;
 
 import openconnector.AbstractConnector;
 import openconnector.ConnectorException;
@@ -47,13 +50,13 @@ public class SPSElite extends AbstractConnector{
 	private String spselitepassword;
 
 	private Map<String, MetaMdUserWebserviceBc> usersList = null;
-	private MetaWebServiceProxy spsEliteProxy = new MetaWebServiceProxy();
+	private MetaWebServiceProxy spsEliteProxy = null;
 	
 	private String getHost() {
 		return host;
 	}
 
-	private void setHost(String host) {
+	public void setHost(String host) {
 		this.host = host;
 	}
 
@@ -61,7 +64,7 @@ public class SPSElite extends AbstractConnector{
 		return spseliteuser;
 	}
 
-	private void setSpseliteuser(String spseliteuser) {
+	public void setSpseliteuser(String spseliteuser) {
 		this.spseliteuser = spseliteuser;
 	}
 
@@ -69,12 +72,16 @@ public class SPSElite extends AbstractConnector{
 		return spselitepassword;
 	}
 
-	private void setSpselitepassword(String spselitepassword) {
+	public void setSpselitepassword(String spselitepassword) {
 		this.spselitepassword = spselitepassword;
 	}
 
 	private Map<String, MetaMdUserWebserviceBc> getUsersList() {
 		return usersList;
+	}
+	
+	private void setUsersList(Map<String, MetaMdUserWebserviceBc> usersList){
+		this.usersList = usersList;
 	}
 
 	private MetaWebServiceProxy getSpsEliteProxy() {
@@ -88,26 +95,40 @@ public class SPSElite extends AbstractConnector{
 	public SPSElite() {
 		super();
 		setSpsEliteProxy(new MetaWebServiceProxy());
-		setHost(config.getString("host"));
-		setSpseliteuser(config.getString("spseliteuser"));
-		setSpselitepassword(config.getString("spselitepassword"));
+		setUsersList(new HashMap<String, MetaMdUserWebserviceBc>());
+		log.setLevel(Level.DEBUG);
 		log.debug("Initializing a new object \n username = " + getSpseliteuser() + "\nhost = " + getHost());
 	}
 	
 	@Override
 	public void testConnection(){
-		
-		try {
-			getSpsEliteProxy().setEndpoint(getHost());
-			if(spsEliteProxy.isValidUserCredentials(getSpseliteuser(), getSpselitepassword()))
-				log.debug("Connection sucessful.");
+		MetaMdUserWebserviceBc[] users = null;
+		try{
+			setConnectionParameters();
+			
+			MetaWsSearchRequest searchRequest = new MetaWsSearchRequest();
+			
+			searchRequest.setUserName(getSpseliteuser());
+			searchRequest.setPassword(getSpselitepassword());
+			
+			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
+			criteria.setMetaMdUserWebserviceBc(new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc());
+			
+			searchRequest.setCriteria(criteria);
+			searchRequest.setMaxRows(1);
+			
+			MetaWsSearchResponse searchResponse = getSpsEliteProxy().search(searchRequest);
+			users = searchResponse.getResult();
+			
+			if(users != null && users.length > 0)
+				log.debug("Connection successful");
 			else
 				throw new ConnectorException("Invalid credentials");
 		} catch (Exception e) {
-			throw new ConnectorException(e.getClass().getName());
+			log.error(e.getClass().getName() + ", "+ e.getMessage());
 		}
 	}
-
+	
 	@Override
 	public Schema discoverSchema() throws ConnectorException ,UnsupportedOperationException {
 		Schema schema = new Schema();
@@ -123,7 +144,7 @@ public class SPSElite extends AbstractConnector{
 			schema.addAttribute(ATTR_FIRSTNAME, Type.STRING);
 			schema.addAttribute(ATTR_LASTNAME, Type.STRING);
 			schema.addAttribute(ATTR_EMAIL, Type.STRING);
-			schema.addAttribute(ATTR_ISACTIVE, Type.BOOLEAN);
+			schema.addAttribute(ATTR_ISACTIVE, Type.STRING);
 		}
 		return schema;
 	}
@@ -138,15 +159,15 @@ public class SPSElite extends AbstractConnector{
 			Map<String, Map<String, Object>> accounts = new HashMap<String,Map<String, Object>>();
 			
 			if(loadUsers()){
-				
+				log.debug("The users were loaded successfully!");
 				List<String> usersName = getUserNames();
 				for(String username : usersName){
 					accounts.put(username, read(username));
 				}
-				iterator = new ArrayList<Map<String,Object>>(accounts.values()).iterator();
-				
+				iterator = new ArrayList<Map<String,Object>>(accounts.values()).iterator();	
 			}
 			else{
+				log.debug("Errors were found when loading the users");
 				iterator = new ArrayList<Map<String,Object>>().iterator();
 			}
 			
@@ -160,7 +181,7 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Map<String, Object> read(String username)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		log.debug("Creating the map for the username " + username);
+		//log.debug("Creating the map for the username " + username);
 		
 		Map<String, Object> userMap = new HashMap<String, Object>();
 		
@@ -176,6 +197,8 @@ public class SPSElite extends AbstractConnector{
 				for(Field property : userProperties){
 					name = property.getName();
 					value = userClass.getField(name).get(user);
+					
+					//log.debug(name + " = " + value);
 					
 					userMap.put(name, value);
 				}
@@ -196,7 +219,7 @@ public class SPSElite extends AbstractConnector{
 		printItems(attributes);
 		
 		if(userExist(username)){
-			log.debug( "The user with the username: " + username + " already exists in the system" );
+			log.debug("The user with the username: " + username + " already exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
@@ -214,7 +237,7 @@ public class SPSElite extends AbstractConnector{
 		printItems(attributes);
 		
 		if(!userExist(username)){
-			log.debug(  "The user with the username: " + username + " does not exists in the system" );
+			log.debug( "The user with the username: " + username + " does not exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
@@ -232,7 +255,7 @@ public class SPSElite extends AbstractConnector{
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
-		user.setIsActive("false");
+		user.setIsActive("0");
 		
 		if(createUpdate(user))
 			return new Result(Result.Status.Committed);
@@ -247,7 +270,7 @@ public class SPSElite extends AbstractConnector{
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
-		user.setIsActive("true");
+		user.setIsActive("1");
 		
 		if(createUpdate(user))
 			return new Result(Result.Status.Committed);
@@ -280,6 +303,10 @@ public class SPSElite extends AbstractConnector{
 	private boolean createUpdate(MetaMdUserWebserviceBc user){
 		try{
 			log.debug("Creating or updating an user...");
+			log.debug(user.getUserName());
+			
+			setConnectionParameters();
+			
 			MetaMdUserWebserviceBc[] transactionData = new MetaMdUserWebserviceBc[]{ user };
 			
 			MetaWsUpdateTransactionRequest transactionRequest = new MetaWsUpdateTransactionRequest();
@@ -288,10 +315,19 @@ public class SPSElite extends AbstractConnector{
 			MetaWsUpdateRequest updateRequest = new MetaWsUpdateRequest();
 			updateRequest.setUserName(getSpseliteuser());
 			updateRequest.setPassword(getSpselitepassword());
-			updateRequest.setTransactions(0, transactionRequest);
+			updateRequest.setTransactions(new MetaWsUpdateTransactionRequest[] { transactionRequest });
 			
-			MetaWsUpdateResponse status = getSpsEliteProxy().update(updateRequest);
-			return status.getStatus().getCode().equals("200");
+			MetaWsUpdateResponse response = getSpsEliteProxy().update(updateRequest);
+
+			MetaWsUpdateTransactionResponse[] transactionsMade = response.getTransactions();
+			
+			boolean updateFailed = false;
+			for(MetaWsUpdateTransactionResponse t : transactionsMade){
+				log.debug("Code = " + t.getStatus().getCode());
+				updateFailed = !t.getStatus().getCode().equals("0");
+			}
+		
+			return updateFailed;
 		}
 		catch(Exception e){
 			log.error(e.getClass().getName() + ", " + e.getMessage());
@@ -302,20 +338,30 @@ public class SPSElite extends AbstractConnector{
 	private boolean userExist (String username){		
 		try{
 			log.debug("Checking if the username: " + username + " exists");
-			MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc userSearched = 
-					new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc();
-			userSearched.setUserName(username);
+
+			setConnectionParameters();
 			
 			MetaWsSearchRequest request = new MetaWsSearchRequest();
 			request.setUserName(spseliteuser);
 			request.setPassword(spselitepassword);
+
+			MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc userSearched = 
+					new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc();
+			userSearched.setUserName(username);
 			
-			request.setCriteria(new MetaWsSearchRequestCriteria());
+			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
+			criteria.setMetaMdUserWebserviceBc(userSearched);
+			
+			request.setCriteria(criteria);
 			
 			MetaWsSearchResponse response = getSpsEliteProxy().search(request);
+			MetaWsResponseStatus status = response.getStatus();
 			MetaMdUserWebserviceBc userFound = response.getResult()[0];
 			
-			return userFound != null && userFound.getUserName().equals(username);
+			log.debug(status.getCode());
+			log.debug(status.getDescription());
+			
+			return userFound != null && userFound.getUserName().equals(username) && !userFound.getFullName().isEmpty();
 		}
 		catch(Exception e){
 			return false;
@@ -328,7 +374,7 @@ public class SPSElite extends AbstractConnector{
 		
 		if(getUsersList() != null && !getUsersList().isEmpty()){
 
-			for(Map.Entry<String, MetaMdUserWebserviceBc> user : usersList.entrySet()){
+			for(Map.Entry<String, MetaMdUserWebserviceBc> user : getUsersList().entrySet()){
 				userNamesList.add(user.getKey());
 			}
 			
@@ -339,17 +385,20 @@ public class SPSElite extends AbstractConnector{
 	
 	private boolean loadUsers(){
 		log.debug("Fetching users into the context...");
-		
 		MetaMdUserWebserviceBc[] users = null;
 		
 		try{
+			setConnectionParameters();
 			
 			MetaWsSearchRequest searchRequest = new MetaWsSearchRequest();
 			
 			searchRequest.setUserName(getSpseliteuser());
 			searchRequest.setPassword(getSpselitepassword());
 			
-			searchRequest.setCriteria(new MetaWsSearchRequestCriteria());
+			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
+			criteria.setMetaMdUserWebserviceBc(new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc());
+			
+			searchRequest.setCriteria(criteria);
 			
 			MetaWsSearchResponse searchResponse = getSpsEliteProxy().search(searchRequest);
 			users = searchResponse.getResult();
@@ -361,17 +410,27 @@ public class SPSElite extends AbstractConnector{
 		catch(Exception e){
 			log.error(e.getClass().getName() + ", " + e.getMessage());
 		}
-		
 		return users != null && users.length > 0;
+	}
+	
+	private void setConnectionParameters(){
+		try{
+			setHost(config.getString("host"));
+			setSpseliteuser(config.getString("spseliteuser"));
+			setSpselitepassword(config.getString("spselitepassword"));
+			
+			getSpsEliteProxy().setEndpoint(getHost());
+		}
+		catch(Exception e){
+			log.debug("The form is not loaded...");
+		}
 	}
 	
 	private void printItems(List<Item> attributes){
 		log.debug("Values: ");
 		
-		for(Item attribute : attributes){
-			log.debug(attribute.name);
-			log.debug(attribute.value.toString());
-		}
+		for(Item attribute : attributes)
+			log.debug(attribute.name + " = " + attribute.value.toString());
 	}
 
 	@Override

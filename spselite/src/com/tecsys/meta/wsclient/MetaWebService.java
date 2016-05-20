@@ -10,5 +10,4 @@ package com.tecsys.meta.wsclient;
 public interface MetaWebService extends java.rmi.Remote {
     public com.tecsys.meta.wsclient.MetaWsSearchResponse search(com.tecsys.meta.wsclient.MetaWsSearchRequest arg0) throws java.rmi.RemoteException;
     public com.tecsys.meta.wsclient.MetaWsUpdateResponse update(com.tecsys.meta.wsclient.MetaWsUpdateRequest arg0) throws java.rmi.RemoteException;
-    public boolean isValidUserCredentials(java.lang.String userName, java.lang.String password) throws java.rmi.RemoteException;
 }
