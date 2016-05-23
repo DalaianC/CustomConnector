@@ -33,14 +33,16 @@ import openconnector.Schema.Type;
 public class SPSElite extends AbstractConnector{
 
 	private final static Logger log = Logger.getLogger(SPSElite.class);
-	
-	//Attributes of the SPSElite service
+
+
+	/* ------------------------- -------------------------  SPSElite Attributes  ------------------------- ------------------------- */
 	public static final String ATTR_USERNAME = "userName";
 	public static final String ATTR_FIRSTNAME = "firstName";
 	public static final String ATTR_LASTNAME = "lastName";
 	public static final String ATTR_EMAIL = "emailAddress";
 	public static final String ATTR_ISACTIVE = "isActive";
-	
+
+	/* ------------------------- -------------------------  Connection Attributes  ------------------------- ------------------------- */
 	public static final String CONFIG_USERNAME = "spseliteuser";
 	public static final String CONFIG_PASSWORD = "spselitepassword";
 	public static final String CONFIG_HOST = "host";
@@ -91,41 +93,26 @@ public class SPSElite extends AbstractConnector{
 	private void setSpsEliteProxy(MetaWebServiceProxy spsEliteProxy) {
 		this.spsEliteProxy = spsEliteProxy;
 	}
+
+	/* ------------------------- -------------------------  IIQ Methods  ------------------------- ------------------------- */
 	
 	public SPSElite() {
 		super();
 		setSpsEliteProxy(new MetaWebServiceProxy());
 		setUsersList(new HashMap<String, MetaMdUserWebserviceBc>());
 		log.setLevel(Level.DEBUG);
-		log.debug("Initializing a new object \n username = " + getSpseliteuser() + "\nhost = " + getHost());
+		log.debug("Initializing a new object...");
 	}
 	
 	@Override
 	public void testConnection(){
-		MetaMdUserWebserviceBc[] users = null;
+		log.debug("Testing the connection...");
 		try{
-			setConnectionParameters();
-			
-			MetaWsSearchRequest searchRequest = new MetaWsSearchRequest();
-			
-			searchRequest.setUserName(getSpseliteuser());
-			searchRequest.setPassword(getSpselitepassword());
-			
-			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
-			criteria.setMetaMdUserWebserviceBc(new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc());
-			
-			searchRequest.setCriteria(criteria);
-			searchRequest.setMaxRows(1);
-			
-			MetaWsSearchResponse searchResponse = getSpsEliteProxy().search(searchRequest);
-			users = searchResponse.getResult();
-			
-			if(users != null && users.length > 0)
-				log.debug("Connection successful");
-			else
-				throw new ConnectorException("Invalid credentials");
-		} catch (Exception e) {
-			log.error(e.getClass().getName() + ", "+ e.getMessage());
+			log.debug("Found the user: " + search("", 1)[0].getUserName());
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			throw new ConnectorException("Failed, error: " + e.getMessage());
 		}
 	}
 	
@@ -186,8 +173,9 @@ public class SPSElite extends AbstractConnector{
 		Map<String, Object> userMap = new HashMap<String, Object>();
 		
 		try {
-			if(!getUsersList().isEmpty()){
-				MetaMdUserWebserviceBc user = getUsersList().get(username);
+			MetaMdUserWebserviceBc user = getUsersList() != null && !getUsersList().isEmpty() ? getUsersList().get(username) : getUser(username);
+			
+			if(user != null){
 				List<Field> userProperties = new ArrayList<Field>(Arrays.asList(user.getClass().getFields()));
 		      	
 		      	Class userClass = MetaMdUserWebserviceBc.class;
@@ -204,8 +192,9 @@ public class SPSElite extends AbstractConnector{
 				}
 				return userMap;
 			}
-			else
-				throw new ConnectorException("The context is empty.");
+			else{
+				throw new ConnectorException("User not found!!");
+			}
 		} catch (Exception e) {
 			log.error(e.getClass().getName() + ", " + e.getMessage());
 			throw new ConnectorException(e.getClass().getName());
@@ -223,7 +212,7 @@ public class SPSElite extends AbstractConnector{
 			return new Result(Result.Status.Failed);
 		}
 		
-		MetaMdUserWebserviceBc user = createUser(username, attributes);
+		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
 		if(user != null && createUpdate(user))
 			return new Result(Result.Status.Committed);
 		else
@@ -241,7 +230,7 @@ public class SPSElite extends AbstractConnector{
 			return new Result(Result.Status.Failed);
 		}
 		
-		MetaMdUserWebserviceBc user = createUser(username, attributes);
+		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
 		if(user != null && createUpdate(user))
 			return new Result(Result.Status.Committed);
 		else
@@ -278,27 +267,7 @@ public class SPSElite extends AbstractConnector{
 			return new Result(Result.Status.Failed);
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private MetaMdUserWebserviceBc createUser(String username, List<Item> attributes){
-		try{
-			log.debug("Creating the user object...");
-			MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
-			user.setUserName(username);
-			
-	      	Class userClass = MetaMdUserWebserviceBc.class;
-	      	String attributeName = null;
-	      	
-			for(Item attribute : attributes){
-				attributeName = attribute.getName();
-				userClass.getField(attributeName).set(user, attribute.getValue());
-			}
-			return user;
-		}
-		catch(Exception e){
-			log.error(e.getClass().getName() + ", " + e.getMessage());
-			return null;
-		}
-	}
+	/* ------------------------- -------------------------  Webservice calls  ------------------------- ------------------------- */
 	
 	private boolean createUpdate(MetaMdUserWebserviceBc user){
 		try{
@@ -335,37 +304,66 @@ public class SPSElite extends AbstractConnector{
 		}
 	}
 	
-	private boolean userExist (String username){		
+	private MetaMdUserWebserviceBc[] search(String username, int maxRows){
+		MetaMdUserWebserviceBc[] users = null;
+		
 		try{
-			log.debug("Checking if the username: " + username + " exists");
-
 			setConnectionParameters();
 			
-			MetaWsSearchRequest request = new MetaWsSearchRequest();
-			request.setUserName(spseliteuser);
-			request.setPassword(spselitepassword);
+			MetaWsSearchRequest searchRequest = new MetaWsSearchRequest();
+			searchRequest.setUserName(getSpseliteuser());
+			searchRequest.setPassword(getSpselitepassword());
 
-			MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc userSearched = 
-					new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc();
-			userSearched.setUserName(username);
-			
 			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
-			criteria.setMetaMdUserWebserviceBc(userSearched);
+			MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc userToSearch = new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc();
 			
-			request.setCriteria(criteria);
+			if(username != null && !username.isEmpty()){
+				userToSearch.setUserName(username);
+				searchRequest.setMaxRows(1);
+			}
+			else if(maxRows > 0)
+				searchRequest.setMaxRows(maxRows);
 			
-			MetaWsSearchResponse response = getSpsEliteProxy().search(request);
-			MetaWsResponseStatus status = response.getStatus();
-			MetaMdUserWebserviceBc userFound = response.getResult()[0];
-			
-			log.debug(status.getCode());
-			log.debug(status.getDescription());
-			
-			return userFound != null && userFound.getUserName().equals(username) && !userFound.getFullName().isEmpty();
+			criteria.setMetaMdUserWebserviceBc(userToSearch);
+			searchRequest.setCriteria(criteria);
+			MetaWsSearchResponse searchResponse = getSpsEliteProxy().search(searchRequest);
+			users = searchResponse.getResult();
 		}
 		catch(Exception e){
-			return false;
+			log.error(e.getClass().getName() + ", " + e.getMessage());
 		}
+		return users;
+	}
+
+	/* ------------------------- -------------------------  Tools  ------------------------- ------------------------- */
+	
+	@SuppressWarnings("rawtypes")
+	private MetaMdUserWebserviceBc createUserObj(String username, List<Item> attributes){
+		try{
+			log.debug("Creating the user object...");
+			MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
+			user.setUserName(username);
+			
+	      	Class userClass = MetaMdUserWebserviceBc.class;
+	      	String attributeName = null;
+	      	
+			for(Item attribute : attributes){
+				attributeName = attribute.getName();
+				userClass.getField(attributeName).set(user, attribute.getValue());
+			}
+			return user;
+		}
+		catch(Exception e){
+			log.error(e.getClass().getName() + ", " + e.getMessage());
+			return null;
+		}
+	}
+	
+	private boolean userExist (String username){		
+		log.debug("Checking if the username: " + username + " exists");
+		MetaMdUserWebserviceBc user = getUser(username);
+		
+		return user != null && user.getFullName() != null && !user.getFullName().isEmpty();
 	}
 	
 	private List<String> getUserNames() {
@@ -373,11 +371,9 @@ public class SPSElite extends AbstractConnector{
 		List<String> userNamesList = new ArrayList<String>();
 		
 		if(getUsersList() != null && !getUsersList().isEmpty()){
-
 			for(Map.Entry<String, MetaMdUserWebserviceBc> user : getUsersList().entrySet()){
 				userNamesList.add(user.getKey());
 			}
-			
 		}
 		
 		return userNamesList;
@@ -385,32 +381,22 @@ public class SPSElite extends AbstractConnector{
 	
 	private boolean loadUsers(){
 		log.debug("Fetching users into the context...");
-		MetaMdUserWebserviceBc[] users = null;
-		
-		try{
-			setConnectionParameters();
+		MetaMdUserWebserviceBc[] users = search("", 0);
 			
-			MetaWsSearchRequest searchRequest = new MetaWsSearchRequest();
-			
-			searchRequest.setUserName(getSpseliteuser());
-			searchRequest.setPassword(getSpselitepassword());
-			
-			MetaWsSearchRequestCriteria criteria = new MetaWsSearchRequestCriteria();
-			criteria.setMetaMdUserWebserviceBc(new MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc());
-			
-			searchRequest.setCriteria(criteria);
-			
-			MetaWsSearchResponse searchResponse = getSpsEliteProxy().search(searchRequest);
-			users = searchResponse.getResult();
-			
-			for(MetaMdUserWebserviceBc user : users){
+		if(users != null && users.length > 0)
+			for(MetaMdUserWebserviceBc user : users)
 				getUsersList().put(user.getUserName(), user);
-			}
-		}
-		catch(Exception e){
-			log.error(e.getClass().getName() + ", " + e.getMessage());
-		}
+		
 		return users != null && users.length > 0;
+	}
+	
+	private MetaMdUserWebserviceBc getUser(String username){
+		MetaMdUserWebserviceBc[] searchResult = search(username, 0);
+		
+		if(searchResult != null && searchResult.length > 0 && searchResult[0] != null)
+			return searchResult[0];
+		else
+			return null;
 	}
 	
 	private void setConnectionParameters(){
@@ -428,7 +414,6 @@ public class SPSElite extends AbstractConnector{
 	
 	private void printItems(List<Item> attributes){
 		log.debug("Values: ");
-		
 		for(Item attribute : attributes)
 			log.debug(attribute.name + " = " + attribute.value.toString());
 	}
