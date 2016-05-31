@@ -204,12 +204,9 @@ public class SPSElite extends AbstractConnector{
 					value = userClass.getField(name).get(user);
 
 					spsEliteLog.debug(name + " = " + value);
-					
-					if(value != null)
-						userMap.put(name, value.toString());
-					else
-						userMap.put(name, "");
 				}
+				boolean disabled = user.getIsActive().equals("0");
+				userMap.put("IIQDisabled", disabled);
 				return userMap;
 			}
 			else{
