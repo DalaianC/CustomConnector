@@ -1,5 +1,7 @@
 package openconnector;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +15,6 @@ import org.apache.log4j.Logger;
 
 import com.tecsys.meta.wsclient.MetaMdUserWebserviceBc;
 import com.tecsys.meta.wsclient.MetaWebServiceProxy;
-import com.tecsys.meta.wsclient.MetaWsResponseStatus;
 import com.tecsys.meta.wsclient.MetaWsSearchRequest;
 import com.tecsys.meta.wsclient.MetaWsSearchRequestCriteria;
 import com.tecsys.meta.wsclient.MetaWsSearchRequestCriteriaMetaMdUserWebserviceBc;
@@ -32,7 +33,7 @@ import openconnector.Schema.Type;
 
 public class SPSElite extends AbstractConnector{
 
-	private final static Logger log = Logger.getLogger(SPSElite.class);
+	private final static Logger spsEliteLog = Logger.getLogger("spselite_connector");
 
 
 	/* ------------------------- -------------------------  SPSElite Attributes  ------------------------- ------------------------- */
@@ -96,23 +97,39 @@ public class SPSElite extends AbstractConnector{
 
 	/* ------------------------- -------------------------  IIQ Methods  ------------------------- ------------------------- */
 	
+    public SPSElite(ConnectorConfig config, Log log) {
+		initialize();
+		configure(config, log);
+		initialize();
+		spsEliteLog.debug("Initializing a new object with config and log...");
+    }
+    
 	public SPSElite() {
 		super();
+		initialize();
+		spsEliteLog.debug("Initializing a new object...");
+	}
+	
+    @Override
+	public void configure(ConnectorConfig config, Log log) throws ConnectorException {
+    	super.configure(config, log);
+    }
+    
+    private void initialize(){
 		setSpsEliteProxy(new MetaWebServiceProxy());
 		setUsersList(new HashMap<String, MetaMdUserWebserviceBc>());
-		log.setLevel(Level.DEBUG);
-		log.debug("Initializing a new object...");
-	}
+		spsEliteLog.setLevel(Level.DEBUG);
+    }
 	
 	@Override
 	public void testConnection(){
-		log.debug("Testing the connection...");
+		spsEliteLog.debug("Testing the connection...");
 		try{
-			log.debug("Found the user: " + search("", 1)[0].getUserName());
+			spsEliteLog.debug("Found the user: " + search("", 1)[0].getUserName());
 		}
 		catch(Exception e){
-			e.printStackTrace();
-			throw new ConnectorException("Failed, error: " + e.getMessage());
+			spsEliteLog.error(traceToString(e));
+			throw new ConnectorException("Connection failed\n " + traceToString(e));
 		}
 	}
 	
@@ -120,7 +137,7 @@ public class SPSElite extends AbstractConnector{
 	public Schema discoverSchema() throws ConnectorException ,UnsupportedOperationException {
 		Schema schema = new Schema();
 		
-		log.debug("Discovering the schema for the type = " + this.objectType);
+		spsEliteLog.debug("Discovering the schema for the type = " + this.objectType);
 		
 		if(OBJECT_TYPE_ACCOUNT.equals(this.objectType)){
 			schema.setObjectType("account");
@@ -138,7 +155,7 @@ public class SPSElite extends AbstractConnector{
 
 	@Override
 	public Iterator<Map<String, Object>> iterate(Filter arg0) throws ConnectorException, UnsupportedOperationException {
-		log.debug("Iterating thru the data ");
+		spsEliteLog.debug("Iterating thru the data ");
 		
 		Iterator<Map<String,Object>> iterator = null;
 		
@@ -146,7 +163,7 @@ public class SPSElite extends AbstractConnector{
 			Map<String, Map<String, Object>> accounts = new HashMap<String,Map<String, Object>>();
 			
 			if(loadUsers()){
-				log.debug("The users were loaded successfully!");
+				spsEliteLog.debug("The users were loaded successfully!");
 				List<String> usersName = getUserNames();
 				for(String username : usersName){
 					accounts.put(username, read(username));
@@ -154,12 +171,12 @@ public class SPSElite extends AbstractConnector{
 				iterator = new ArrayList<Map<String,Object>>(accounts.values()).iterator();	
 			}
 			else{
-				log.debug("Errors were found when loading the users");
+				spsEliteLog.debug("Errors were found when loading the users");
 				iterator = new ArrayList<Map<String,Object>>().iterator();
 			}
 			
 		} catch (Exception e) {
-			log.error(e.getClass().getName() + ", " + e.getMessage());
+			spsEliteLog.error(traceToString(e));
 		}
 		return iterator;
 	}
@@ -168,7 +185,7 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Map<String, Object> read(String username)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		//log.debug("Creating the map for the username " + username);
+		//spsEliteLog.warn("Creating the map for the username " + username);
 		
 		Map<String, Object> userMap = new HashMap<String, Object>();
 		
@@ -185,94 +202,90 @@ public class SPSElite extends AbstractConnector{
 				for(Field property : userProperties){
 					name = property.getName();
 					value = userClass.getField(name).get(user);
+
+					spsEliteLog.debug(name + " = " + value);
 					
-					//log.debug(name + " = " + value);
-					
-					userMap.put(name, value);
+					if(value != null)
+						userMap.put(name, value.toString());
+					else
+						userMap.put(name, "");
 				}
 				return userMap;
 			}
 			else{
-				throw new ConnectorException("User not found!!");
+				spsEliteLog.debug("User not found!!, read failed!");
 			}
 		} catch (Exception e) {
-			log.error(e.getClass().getName() + ", " + e.getMessage());
-			throw new ConnectorException(e.getClass().getName());
+			spsEliteLog.error(traceToString(e));
 		}
+		return null;
 	}
 	
 	@Override
 	public Result create(String username, List<Item> attributes)
 			throws ConnectorException, ObjectAlreadyExistsException, UnsupportedOperationException {
-		log.debug("Creating the user = " + username);
+		spsEliteLog.debug("Creating the user = " + username);
 		printItems(attributes);
 		
 		if(userExist(username)){
-			log.debug("The user with the username: " + username + " already exists in the system" );
+			spsEliteLog.debug("The user with the username: " + username + " already exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
 		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
-		if(user != null && createUpdate(user))
-			return new Result(Result.Status.Committed);
-		else
-			return new Result(Result.Status.Failed);
+		if(user != null)
+			createUpdate(user);
+		return new Result(Result.Status.Committed);
 	}
 	
 	@Override
 	public Result update(String username, List<Item> attributes) throws ConnectorException, ObjectNotFoundException,
 			IllegalArgumentException, UnsupportedOperationException {
-		log.debug("Updating the user = " + username);
+		spsEliteLog.debug("Updating the user = " + username);
 		printItems(attributes);
 		
 		if(!userExist(username)){
-			log.debug( "The user with the username: " + username + " does not exists in the system" );
+			spsEliteLog.debug( "The user with the username: " + username + " does not exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
 		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
-		if(user != null && createUpdate(user))
-			return new Result(Result.Status.Committed);
-		else
-			return new Result(Result.Status.Failed);
+		if(user != null)
+			createUpdate(user);
+		return new Result(Result.Status.Committed);
 	}
 	
 	@Override
 	public Result disable(String username, Map<String, Object> options)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		log.debug("Disabling the user = " + username);
+		spsEliteLog.debug("Disabling the user = " + username);
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
 		user.setIsActive("0");
 		
-		if(createUpdate(user))
-			return new Result(Result.Status.Committed);
-		else
-			return new Result(Result.Status.Failed);
+		createUpdate(user);
+		return new Result(Result.Status.Committed);
 	}
 
 	@Override
 	public Result enable(String username, Map<String, Object> options)
 			throws ConnectorException, ObjectNotFoundException, UnsupportedOperationException {
-		log.debug("Enabling the user = " + username);
+		spsEliteLog.debug("Enabling the user = " + username);
 		
 		MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 		user.setUserName(username);
 		user.setIsActive("1");
 		
-		if(createUpdate(user))
-			return new Result(Result.Status.Committed);
-		else
-			return new Result(Result.Status.Failed);
+		createUpdate(user);
+		return new Result(Result.Status.Committed);
 	}
 	
 	/* ------------------------- -------------------------  Webservice calls  ------------------------- ------------------------- */
 	
 	private boolean createUpdate(MetaMdUserWebserviceBc user){
 		try{
-			log.debug("Creating or updating an user...");
-			log.debug(user.getUserName());
+			spsEliteLog.debug("Creating or updating an user..." + user.getUserName());
 			
 			setConnectionParameters();
 			
@@ -284,22 +297,23 @@ public class SPSElite extends AbstractConnector{
 			MetaWsUpdateRequest updateRequest = new MetaWsUpdateRequest();
 			updateRequest.setUserName(getSpseliteuser());
 			updateRequest.setPassword(getSpselitepassword());
+			
 			updateRequest.setTransactions(new MetaWsUpdateTransactionRequest[] { transactionRequest });
 			
 			MetaWsUpdateResponse response = getSpsEliteProxy().update(updateRequest);
 
 			MetaWsUpdateTransactionResponse[] transactionsMade = response.getTransactions();
 			
-			boolean updateFailed = false;
+			boolean success = false;
 			for(MetaWsUpdateTransactionResponse t : transactionsMade){
-				log.debug("Code = " + t.getStatus().getCode());
-				updateFailed = !t.getStatus().getCode().equals("0");
+				spsEliteLog.debug("Code = " + t.getStatus().getCode());
+				success = t.getStatus().getCode().equals("0");
 			}
-		
-			return updateFailed;
+			spsEliteLog.debug("The create/update failed? " + Boolean.toString(success));
+			return success;
 		}
 		catch(Exception e){
-			log.error(e.getClass().getName() + ", " + e.getMessage());
+			spsEliteLog.error(traceToString(e));
 			return false;
 		}
 	}
@@ -330,7 +344,7 @@ public class SPSElite extends AbstractConnector{
 			users = searchResponse.getResult();
 		}
 		catch(Exception e){
-			log.error(e.getClass().getName() + ", " + e.getMessage());
+			spsEliteLog.error(traceToString(e));
 		}
 		return users;
 	}
@@ -340,7 +354,7 @@ public class SPSElite extends AbstractConnector{
 	@SuppressWarnings("rawtypes")
 	private MetaMdUserWebserviceBc createUserObj(String username, List<Item> attributes){
 		try{
-			log.debug("Creating the user object...");
+			spsEliteLog.debug("Creating the user object...");
 			MetaMdUserWebserviceBc user = new  MetaMdUserWebserviceBc();
 			user.setUserName(username);
 			
@@ -354,20 +368,20 @@ public class SPSElite extends AbstractConnector{
 			return user;
 		}
 		catch(Exception e){
-			log.error(e.getClass().getName() + ", " + e.getMessage());
+			spsEliteLog.error(traceToString(e));
 			return null;
 		}
 	}
 	
 	private boolean userExist (String username){		
-		log.debug("Checking if the username: " + username + " exists");
+		spsEliteLog.debug("Checking if the username: " + username + " exists");
 		MetaMdUserWebserviceBc user = getUser(username);
 		
 		return user != null && user.getFullName() != null && !user.getFullName().isEmpty();
 	}
 	
 	private List<String> getUserNames() {
-		log.debug("Fetching usernames...");
+		spsEliteLog.debug("Fetching usernames...");
 		List<String> userNamesList = new ArrayList<String>();
 		
 		if(getUsersList() != null && !getUsersList().isEmpty()){
@@ -380,7 +394,7 @@ public class SPSElite extends AbstractConnector{
 	}
 	
 	private boolean loadUsers(){
-		log.debug("Fetching users into the context...");
+		spsEliteLog.debug("Fetching users into the context...");
 		MetaMdUserWebserviceBc[] users = search("", 0);
 			
 		if(users != null && users.length > 0)
@@ -408,14 +422,21 @@ public class SPSElite extends AbstractConnector{
 			getSpsEliteProxy().setEndpoint(getHost());
 		}
 		catch(Exception e){
-			log.debug("The form is not loaded...");
+			spsEliteLog.error("The form is not loaded...\n" + traceToString(e));
 		}
 	}
 	
 	private void printItems(List<Item> attributes){
-		log.debug("Values: ");
+		spsEliteLog.debug("Values: ");
 		for(Item attribute : attributes)
-			log.debug(attribute.name + " = " + attribute.value.toString());
+			spsEliteLog.debug(attribute.name + " = " + attribute.value.toString());
+	}
+
+	private String traceToString(Exception e){
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		e.printStackTrace(pw);
+		return sw.toString();
 	}
 
 	@Override
