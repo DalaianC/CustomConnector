@@ -35,7 +35,6 @@ public class SPSElite extends AbstractConnector{
 
 	private final static Logger spsEliteLog = Logger.getLogger("spselite_connector");
 
-
 	/* ------------------------- -------------------------  SPSElite Attributes  ------------------------- ------------------------- */
 	public static final String ATTR_USERNAME = "userName";
 	public static final String ATTR_FIRSTNAME = "firstName";
@@ -47,7 +46,7 @@ public class SPSElite extends AbstractConnector{
 	public static final String CONFIG_USERNAME = "spseliteuser";
 	public static final String CONFIG_PASSWORD = "spselitepassword";
 	public static final String CONFIG_HOST = "host";
-	
+
 	private String host;
 	private String spseliteuser;
 	private String spselitepassword;
@@ -96,24 +95,12 @@ public class SPSElite extends AbstractConnector{
 	}
 
 	/* ------------------------- -------------------------  IIQ Methods  ------------------------- ------------------------- */
-	
-    public SPSElite(ConnectorConfig config, Log log) {
-		initialize();
-		configure(config, log);
-		initialize();
-		spsEliteLog.debug("Initializing a new object with config and log...");
-    }
     
 	public SPSElite() {
 		super();
 		initialize();
-		spsEliteLog.debug("Initializing a new object...");
+		spsEliteLog.debug("Initializing a new object..."); 
 	}
-	
-    @Override
-	public void configure(ConnectorConfig config, Log log) throws ConnectorException {
-    	super.configure(config, log);
-    }
     
     private void initialize(){
 		setSpsEliteProxy(new MetaWebServiceProxy());
@@ -204,9 +191,12 @@ public class SPSElite extends AbstractConnector{
 					value = userClass.getField(name).get(user);
 
 					spsEliteLog.debug(name + " = " + value);
+					
+					if(value != null)
+						userMap.put(name, value.toString());
+					else
+						userMap.put(name, "");
 				}
-				boolean disabled = user.getIsActive().equals("0");
-				userMap.put("IIQDisabled", disabled);
 				return userMap;
 			}
 			else{
@@ -230,8 +220,14 @@ public class SPSElite extends AbstractConnector{
 		}
 		
 		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
-		if(user != null)
+		if(user != null){
+			log.debug("Attemping to create user in spselite...");
 			createUpdate(user);
+		}
+		else{
+			log.error("The object to create the user was null...");
+			return new Result(Result.Status.Failed);
+		}
 		return new Result(Result.Status.Committed);
 	}
 	
@@ -374,7 +370,7 @@ public class SPSElite extends AbstractConnector{
 		spsEliteLog.debug("Checking if the username: " + username + " exists");
 		MetaMdUserWebserviceBc user = getUser(username);
 		
-		return user != null && user.getFullName() != null && !user.getFullName().isEmpty();
+		return user != null && user.getIsActive() != null && !user.getIsActive().isEmpty();
 	}
 	
 	private List<String> getUserNames() {
