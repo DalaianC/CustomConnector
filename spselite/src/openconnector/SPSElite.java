@@ -197,6 +197,8 @@ public class SPSElite extends AbstractConnector{
 					else
 						userMap.put(name, "");
 				}
+				boolean disabled = user.getIsActive().equals("0");
+				userMap.put("IIQDisabled", disabled);
 				return userMap;
 			}
 			else{
@@ -211,41 +213,70 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result create(String username, List<Item> attributes)
 			throws ConnectorException, ObjectAlreadyExistsException, UnsupportedOperationException {
-		spsEliteLog.debug("Creating the user = " + username);
-		printItems(attributes);
-		
-		if(userExist(username)){
-			spsEliteLog.debug("The user with the username: " + username + " already exists in the system" );
+		try{
+			if(username == null || username != null && username.length() == 0){
+				spsEliteLog.debug("The username parameter was null or empty, searching the username...");
+				for(Item attribute : attributes)
+				{
+					if(attribute.getName().equals("userName"))
+						username = attribute.getValue().toString();
+				}
+				if(username == null || username != null && username.isEmpty())
+					return new Result(Result.Status.Failed);
+			}
+			spsEliteLog.debug("Creating the user = " + username);
+			printItems(attributes);
+			
+			if(username != null && username.length() > 0 && userExist(username)){
+				spsEliteLog.debug("The user with the username: " + username + " already exists in the system" );
+				return new Result(Result.Status.Failed);
+			}
+			
+			MetaMdUserWebserviceBc user = createUserObj(username, attributes);
+			if(user != null){
+				log.debug("Attemping to create user in spselite...");
+				createUpdate(user);
+				return new Result(Result.Status.Committed);
+			}
+			else{
+				log.error("The object to create the user was null...");
+				return new Result(Result.Status.Failed);
+			}
+		}
+		catch(Exception e){
+			spsEliteLog.error(traceToString(e));
 			return new Result(Result.Status.Failed);
 		}
-		
-		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
-		if(user != null){
-			log.debug("Attemping to create user in spselite...");
-			createUpdate(user);
-		}
-		else{
-			log.error("The object to create the user was null...");
-			return new Result(Result.Status.Failed);
-		}
-		return new Result(Result.Status.Committed);
 	}
 	
 	@Override
 	public Result update(String username, List<Item> attributes) throws ConnectorException, ObjectNotFoundException,
 			IllegalArgumentException, UnsupportedOperationException {
+		if(username == null || username != null && username.length() == 0){
+			spsEliteLog.debug("The username parameter was null or empty, searching the username...");
+			for(Item attribute : attributes)
+			{
+				if(attribute.getName().equals("userName"))
+					username = attribute.getValue().toString();
+			}
+			if(username == null || username != null && username.isEmpty())
+				return new Result(Result.Status.Failed);
+		}
 		spsEliteLog.debug("Updating the user = " + username);
 		printItems(attributes);
 		
-		if(!userExist(username)){
+		if(username != null && username.length() > 0 && userExist(username)){
 			spsEliteLog.debug( "The user with the username: " + username + " does not exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
 		
 		MetaMdUserWebserviceBc user = createUserObj(username, attributes);
-		if(user != null)
+		if(user != null){
 			createUpdate(user);
-		return new Result(Result.Status.Committed);
+			return new Result(Result.Status.Committed);
+		}
+		else
+			return new Result(Result.Status.Failed);
 	}
 	
 	@Override
