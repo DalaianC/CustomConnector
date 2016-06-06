@@ -265,7 +265,7 @@ public class SPSElite extends AbstractConnector{
 		spsEliteLog.debug("Updating the user = " + username);
 		printItems(attributes);
 		
-		if(username != null && username.length() > 0 && userExist(username)){
+		if(username != null && username.length() > 0 && !userExist(username)){
 			spsEliteLog.debug( "The user with the username: " + username + " does not exists in the system" );
 			return new Result(Result.Status.Failed);
 		}
