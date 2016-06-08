@@ -35,14 +35,14 @@ public class SPSElite extends AbstractConnector{
 
 	private final static Logger spsEliteLog = Logger.getLogger("spselite_connector");
 
-	/* ------------------------- -------------------------  SPSElite Attributes  ------------------------- ------------------------- */
+	/* -----------SPSElite Attributes ----------- */
 	public static final String ATTR_USERNAME = "userName";
 	public static final String ATTR_FIRSTNAME = "firstName";
 	public static final String ATTR_LASTNAME = "lastName";
 	public static final String ATTR_EMAIL = "emailAddress";
 	public static final String ATTR_ISACTIVE = "isActive";
 
-	/* ------------------------- -------------------------  Connection Attributes  ------------------------- ------------------------- */
+	/* -----------Connection Attributes ----------- */
 	public static final String CONFIG_USERNAME = "spseliteuser";
 	public static final String CONFIG_PASSWORD = "spselitepassword";
 	public static final String CONFIG_HOST = "host";
@@ -214,14 +214,16 @@ public class SPSElite extends AbstractConnector{
 	public Result create(String username, List<Item> attributes)
 			throws ConnectorException, ObjectAlreadyExistsException, UnsupportedOperationException {
 		try{
-			if(username == null || username != null && username.length() == 0){
+			if(username == null || (username != null && username.length() == 0)){
 				spsEliteLog.debug("The username parameter was null or empty, searching the username...");
 				for(Item attribute : attributes)
 				{
-					if(attribute.getName().equals("userName"))
+					if(attribute.getName().equals("userName")){
 						username = attribute.getValue().toString();
+						break;
+					}
 				}
-				if(username == null || username != null && username.isEmpty())
+				if(username == null || (username != null && username.isEmpty()))
 					return new Result(Result.Status.Failed);
 			}
 			spsEliteLog.debug("Creating the user = " + username);
@@ -234,12 +236,12 @@ public class SPSElite extends AbstractConnector{
 			
 			MetaMdUserWebserviceBc user = createUserObj(username, attributes);
 			if(user != null){
-				log.debug("Attemping to create user in spselite...");
+				spsEliteLog.debug("Attemping to create user in spselite...");
 				createUpdate(user);
 				return new Result(Result.Status.Committed);
 			}
 			else{
-				log.error("The object to create the user was null...");
+				spsEliteLog.error("The object to create the user was null...");
 				return new Result(Result.Status.Failed);
 			}
 		}
@@ -252,14 +254,14 @@ public class SPSElite extends AbstractConnector{
 	@Override
 	public Result update(String username, List<Item> attributes) throws ConnectorException, ObjectNotFoundException,
 			IllegalArgumentException, UnsupportedOperationException {
-		if(username == null || username != null && username.length() == 0){
+		if(username == null || (username != null && username.length() == 0)){
 			spsEliteLog.debug("The username parameter was null or empty, searching the username...");
 			for(Item attribute : attributes)
 			{
 				if(attribute.getName().equals("userName"))
 					username = attribute.getValue().toString();
 			}
-			if(username == null || username != null && username.isEmpty())
+			if(username == null || (username != null && username.isEmpty()))
 				return new Result(Result.Status.Failed);
 		}
 		spsEliteLog.debug("Updating the user = " + username);
